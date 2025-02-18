@@ -44,7 +44,7 @@ while True:
 print("Score: {}".format(score))
 ```
 
-### 2.2 Deep Q-Network (DQN) (Including model description, target network)
+### 2.2 Deep Q-Network (DQN)
 
 Q-Learning is a reinforcement learning algorithm used to find the optimal action-selection policy for any given finite Markov decision process (MDP). It's a simple-to-implement algorithm and can be applied in a wide range of problems. However, it becomes impractical or even impossible when dealing with large or continous state and actions spaces.
 
@@ -54,11 +54,42 @@ The neural network is implemented in the `model.py` file which can be found [her
 
 <img src="image/neural_network.png" width="50%" align="top-left" alt="" title="neural network" />
 
-### 2.3 Epsilon Greedy Search
+### 2.3 Local Network and Target Network
 
-### 2.4 Replay Buffer
+As showed in the `dqn_agent.py` file which can be found [here](https://github.com/yijun-deng/DRL_P1_Navigation/blob/main/dqn_agent.py#L5), the agent contains 2 instances of the Q-Network: Local network and target network.
 
-## 3 Experiment Result
+Local network is used to select actions based on the current policy and is updated frequently using gradient descent. On the other hand, target network  is used to calculate the target Q-values for the Bellman update. It is updated less frequently, by just copying the weights from the local network every few steps.
+
+The use of 2 instances is because that consecutive states are often highly correlated, and if the same network is used to both select and evaluate actions, these correlations can lead to unstable updates and poor learning performance.
+
+### 2.4 Epsilon Greedy Search
+
+Epsilon Greedy Search is used in the algorithm to balance the trade-off between exploration (trying new actions to discover their effects) and exploitation (choosing best actions based on current knowledge).
+
+The pseudo code is as below:
+```python
+Initilize Epsilon
+For each time step t:
+    Generate a random number p between 0 and 1.
+    if p > epsilon:
+        Select the action a that maximize the Q value. (Exploitation)
+    else:
+        Select a random action a. (Exploration)
+```
+
+To make the learning more efficiency, a decayed epsilon has been used, which means that the value of epsilon is not fixed but rather decreases over time. This decay allows the agent to explore more in the early stages of training when it has less knowledge about the environment and gradually shift towards exploiting its learned knowledge as training progresses. The values of decayed epsilon are as below:
+```python
+eps_start=1.0, eps_end=0.01, eps_decay=0.995
+```
+Where eps_start is the initial value of epsilon, eps_decay is its decay rate and eps_end is its minimun value.
+
+### 2.5 Experience Replay
+
+When the agent interacts with the environment, the sequence of experience tuples can be highly correlated. The naive Q-learning algorithm that learns from each of these experience tuples in sequential order runs the risk of getting swayed by the effects of this correlation.
+
+Therefore, a replay buffer containing a collection of experience tuples (S, A, R, S') is used to tackle this issue. At each iteration, a small batch of tuples from the replay buffer is sampled for the training, which can break the harmful correlations. Additionally, it also allows to learn more from individual tuples multiple times, recall rare occurrences, and in general make better use of the experience.
+
+## 3 Result
 
 The bolow figure shows the final result of the training. The agent was able to solve the evironment within 405 episodes with an average score of 13.05.
 
@@ -66,9 +97,23 @@ The bolow figure shows the final result of the training. The agent was able to s
 
 ## 4 Future Improvements
 
+Even though the current algorithm is good enough to solve the evironment within 405 episodes, we could still improve it to have better performance by using some tricks. Double Deep Q-Network, Dueling Deep Q-Network and Prioritized Experence Replay are 3 main methods that could be applied.
+
 ### 4.1 Double Deep Q-Network
+
+In standard DQN, the Q-value update uses the maximum predicted Q-value for the next state, which can lead to overestimation because it tends to favor actions with higher Q-values, even if they are not the best actions.
+
+To solve this issue, we could use Double DQN which could reduce the overestimation of action values by using two networks for action selection and evaluation, leading to better learning stability.
 
 ### 4.2 Dueling Deep Q-Network
 
+Another improvement could be the adoption of Dueling DQN which is a new architecture where the Q-value function is decomposed into two separate streams: The value Stream which estimates the value of being in a particular state, and the advantage stream which estimates the advantage of each action in that state. The final Q-value for each action is computed by combining both.
+
+By using the Dueling DQN, the agent could have more stable learning and faster convergence, as it reduces the variance in the Q-value estimates.
+
 ### 4.3 Prioritized Experience Replay
+
+Experiecne replay is very important to break correlations among a sequence of experience tuples. In this project, the tuples in the replay buffer are uniformly randomly selected. However, some of the experiences could be more important than others, and moreover, these important experiences might occur infrequently, which leads to a very small chance of being selected.
+
+To improve it, we could use a prioritized experience reply, which assigns a priority to each experience based on its importance for learning. The priority is determined by the Temporal Difference (TD) error. A higher TD error suggests that the experience is more valuable for learning.
 
